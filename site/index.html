@@ -504,7 +504,7 @@ function render(){
   keys.forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = cleanText(state.petitions[k].meta.title).replace(/^Sign the petition:\s*/i, ""); o.selected = k === state.selected; picker.appendChild(o); });
 
   // header
-  const title = cleanText(meta.title).replace(/^Sign the petition:\s*/i, "");
+  const title = "Sky’s ITV bid: public petition tracker";
   $("title").textContent = title;
   document.title = "Petition tracker: " + title;
   const metaEl = $("meta"); metaEl.innerHTML = "";
