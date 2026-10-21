@@ -7,7 +7,7 @@ on:
   schedule:
     - cron: "20 * * * *"         # 20 minutes past every hour, UTC
   workflow_dispatch:             # run it by hand from the Actions tab
-    repository_dispatch:           # Apify calls this when each scrape finishes
+  repository_dispatch:           # Apify calls this when each scrape finishes
     types: [apify-run]
   push:                          # republish straight away when you edit these
     branches: [main]
