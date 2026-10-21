@@ -1,0 +1,68 @@
+name: Update petition tracker
+
+# Apify runs the scrape on the hour. This pulls the result 20 minutes later,
+# adds it to the history, commits that back and republishes the site.
+# GitHub's scheduler can run a few minutes late, which is why there's a gap.
+on:
+  schedule:
+    - cron: "20 * * * *"         # 20 minutes past every hour, UTC
+  workflow_dispatch:             # run it by hand from the Actions tab
+  push:                          # republish straight away when you edit these
+    branches: [main]
+    paths:
+      - "data/events.json"
+      - "site/**"
+      - "build_tracker.py"
+      - ".github/workflows/update-tracker.yml"
+
+permissions:
+  contents: write                # to commit the growing history back
+  pages: write
+  id-token: write
+
+concurrency:
+  group: petition-tracker
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Pull from Apify and rebuild
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: |
+          python build_tracker.py \
+            --task "${{ vars.APIFY_TASK_ID }}" \
+            --mode "${{ vars.APIFY_MODE || 'latest' }}" \
+            --history data/history.json \
+            --events data/events.json \
+            --site site \
+            --out out
+
+      - name: Commit the updated history
+        run: |
+          git config user.name  "petition-tracker"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/history.json
+          if ! git diff --staged --quiet; then
+            git commit -m "Snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: out
+      - id: deploy
+        uses: actions/deploy-pages@v4
